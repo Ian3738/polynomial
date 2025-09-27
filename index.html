@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>國中八年級多項式乘除法視覺化模擬系統</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#0b1226;
+      --ink:#e5e7eb;
+      --ink-dim:#94a3b8;
+      --brand:#22d3ee;
+      --accent:#a78bfa;
+      --pos:#34d399;
+      --neg:#f87171;
+      --muted:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; 
+      font-family: system-ui, -apple-system, "Microsoft JhengHei", Segoe UI, Roboto, Noto Sans TC, sans-serif; 
+      background: radial-gradient(1200px 600px at 20% -10%, #1e293b 0%, #0f172a 55%) no-repeat fixed; 
+      color:var(--ink);
+    }
+    header{ 
+      padding:24px 20px 8px; 
+      text-align:center; 
+    }
+    header h1{
+      margin:0; 
+      font-size:clamp(1.2rem,2.8vw,2rem); 
+      letter-spacing:0.5px;
+      background: linear-gradient(90deg, var(--brand) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p{margin:6px 0 0; color:var(--ink-dim)}
+
+    .wrap{max-width:1200px; margin:0 auto; padding:20px;}
+    .grid{display:grid; grid-template-columns: 1.2fr 1fr; gap:18px}
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); 
+      border:1px solid #1e293b; 
+      border-radius:16px; 
+      padding:16px; 
+      box-shadow:0 10px 30px rgba(0,0,0,.25)
+    }
+    .panel h2{margin:4px 0 12px; font-size:1.05rem; color:#c7d2fe}
+    .row{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:8px 0}
+    .card{background:rgba(255,255,255,0.03); border:1px solid #1f2937; border-radius:14px; padding:12px}
+    label{font-size:.9rem; color:var(--ink-dim)}
+    input[type=number]{
+      width:90px; 
+      padding:6px 8px; 
+      border-radius:10px; 
+      border:1px solid #334155; 
+      background:#0b1327; 
+      color:var(--ink);
+      font-size:1rem;
+    }
+    input[type=range]{width:180px}
+    .expr{
+      font-variant-ligatures: none; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; 
+      background:#0b1327; 
+      border:1px solid #1f2937; 
+      border-radius:12px; 
+      padding:10px 12px; 
+      display:inline-block;
+      min-height: 40px;
+    }
+    .tag{
+      display:inline-block; 
+      padding:3px 8px; 
+      border-radius:999px; 
+      border:1px solid #334155; 
+      color:#bae6fd; 
+      background:rgba(34,211,238,.08); 
+      font-size:.8rem
+    }
+    .btn{
+      cursor:pointer; 
+      padding:8px 12px; 
+      border-radius:10px; 
+      border:1px solid #334155; 
+      background:#0b1327; 
+      color:var(--ink); 
+      transition:.15s; 
+      font-weight:600
+    }
+    .btn:hover{border-color:#475569; transform:translateY(-1px)}
+    .btn.primary{background:linear-gradient(90deg, rgba(34,211,238,.18), rgba(167,139,250,.18)); border-color:#475569}
+
+    .flex{display:flex; gap:14px; align-items:center}
+
+    .stage{display:grid; grid-template-columns: 1fr; gap:12px}
+    canvas, svg{
+      width:100%; 
+      height:320px; 
+      background:#0b1327; 
+      border:1px solid #1f2937; 
+      border-radius:12px
+    }
+
+    .steps{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; 
+      background:#0b1327; 
+      border:1px solid #1f2937; 
+      border-radius:12px; 
+      padding:12px; 
+      max-height:320px; 
+      overflow:auto
+    }
+    .steps .line{padding:4px 6px; border-left:3px solid #334155; margin:4px 0}
+    .steps .ok{border-left-color: var(--pos)}
+    .steps .warn{border-left-color: var(--neg)}
+
+    .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px}
+    .kpi{background:#0b1327; border:1px solid #1f2937; border-radius:12px; padding:8px 10px}
+    .kpi .v{font-weight:700; font-size:1.05rem}
+    .note{color:#94a3b8; font-size:.88rem}
+
+    @media (max-width: 980px){ 
+      .grid{grid-template-columns: 1fr} 
+    }
+
+    .visWrap{position:relative}
+    .overlay{position:absolute; left:0; top:0; width:100%; height:320px; pointer-events:none}
+    .overlay .tex{position:absolute; font-size:14px; color:#e5e7eb}
+    .overlay .tex.dim{color:#a5b4fc}
+
+    .pass{color:#34d399}
+    .fail{color:#f87171}
+    .check-block{
+      margin-top:12px;
+      padding:10px;
+      border-top:1px solid #334155;
+      font-size:1.05rem;
+      min-height: 40px;
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: { 
+        inlineMath: [["\\(","\\)"], ["$", "$"]] 
+      }, 
+      svg: { 
+        fontCache: 'global' 
+      },
+      startup: {
+        ready: () => {
+          MathJax.startup.defaultReady();
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <header>
+    <h1>國中八年級多項式乘除法視覺化模擬系統</h1>
+    <p>以面積模型（乘法）與長除法消去（除法）動態呈現，搭配數值驗算與步驟紀錄。</p>
+    <p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">開發者｜心築師塾工作室 Ian</p>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <section class="panel" id="mulPanel">
+        <div class="row">
+          <h2>乘法｜面積模型（格子圖）</h2>
+          <span class="tag">(ax + b)(cx + d)</span>
+        </div>
+        <div class="row">
+          <div class="card">
+            <div class="row"><label>a</label><input type="number" id="aNum" value="2"></div>
+            <div class="row"><label>b</label><input type="number" id="bNum" value="3"></div>
+          </div>
+          <div class="card">
+            <div class="row"><label>c</label><input type="number" id="cNum" value="1"></div>
+            <div class="row"><label>d</label><input type="number" id="dNum" value="4"></div>
+          </div>
+          <div class="card">
+            <label>x = </label><input type="number" id="xCheck" value="5">
+            <button class="btn primary" id="btnCheckMul">驗算</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="expr" id="mulExpr"></div>
+        </div>
+        <div class="stage">
+          <div class="visWrap">
+            <svg id="mulSvg" viewBox="0 0 640 320"></svg>
+            <div class="overlay" id="mulOverlay"></div>
+          </div>
+          <div class="kpis">
+            <div class="kpi">
+              <div class="note">展開結果</div>
+              <div class="v" id="mulExpanded"></div>
+            </div>
+            <div class="kpi">
+              <div class="note">FOIL 四項</div>
+              <div class="v" id="mulFoil"></div>
+            </div>
+            <div class="kpi">
+              <div class="note">驗證</div>
+              <div class="v" id="mulCheck"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <section class="panel" id="divPanel">
+        <div class="row">
+          <h2>除法｜長除法逐步消去</h2>
+          <span class="tag">(px² + qx + r) ÷ (mx + n)</span>
+        </div>
+        <div class="row">
+          <div class="card">
+            <div class="row"><label>p</label><input type="number" id="pNum" value="3"></div>
+            <div class="row"><label>q</label><input type="number" id="qNum" value="-4"></div>
+            <div class="row"><label>r</label><input type="number" id="rNum" value="2"></div>
+          </div>
+          <div class="card">
+            <div class="row"><label>m</label><input type="number" id="mNum" value="1"></div>
+            <div class="row"><label>n</label><input type="number" id="nNum" value="-3"></div>
+          </div>
+          <div class="card">
+            <button class="btn primary" id="btnDivide">開始除法</button>
+            <button class="btn" id="btnResetDiv">清空</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="expr" id="divExpr"></div>
+        </div>
+        <div class="stage">
+          <div class="visWrap">
+            <canvas id="divCanvas" width="640" height="320"></canvas>
+          </div>
+          <div class="steps" id="divSteps"></div>
+        </div>
+        <div id="checkEq" class="expr check-block"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // Get elements
+    const $aN = document.getElementById('aNum');
+    const $bN = document.getElementById('bNum');
+    const $cN = document.getElementById('cNum');
+    const $dN = document.getElementById('dNum');
+    const $mulExpr = document.getElementById('mulExpr');
+    const $mulSvg = document.getElementById('mulSvg');
+    const $mulOverlay = document.getElementById('mulOverlay');
+    const $mulExpanded = document.getElementById('mulExpanded');
+    const $mulFoil = document.getElementById('mulFoil');
+    const $mulCheck = document.getElementById('mulCheck');
+    const $xCheck = document.getElementById('xCheck');
+
+    const $pN = document.getElementById('pNum');
+    const $qN = document.getElementById('qNum');
+    const $rN = document.getElementById('rNum');
+    const $mN = document.getElementById('mNum');
+    const $nN = document.getElementById('nNum');
+    const $divExpr = document.getElementById('divExpr');
+    const $divCanvas = document.getElementById('divCanvas');
+    const $divSteps = document.getElementById('divSteps');
+    const $checkEq = document.getElementById('checkEq');
+
+    // Helper functions
+    function formatCoef(c) {
+      if (c === 0) return '';
+      if (c === 1) return '';
+      if (c === -1) return '-';
+      return c.toString();
+    }
+
+    function formatTerm(c, pow) {
+      if (c === 0) return '';
+      const sign = c < 0 ? '-' : '';
+      const absC = Math.abs(c);
+      
+      if (pow === 0) return c.toString();
+      if (pow === 1) {
+        if (absC === 1) return `${sign}x`;
+        return `${sign}${absC}x`;
+      }
+      if (absC === 1) return `${sign}x^${pow}`;
+      return `${sign}${absC}x^${pow}`;
+    }
+
+    function formatPoly(coeffs) {
+      const terms = [];
+      for (let i = coeffs.length - 1; i >= 0; i--) {
+        if (coeffs[i] !== 0) {
+          const term = formatTerm(coeffs[i], i);
+          if (term) terms.push(term);
+        }
+      }
+      if (terms.length === 0) return '0';
+      
+      let result = terms.join(' + ');
+      result = result.replace(/\+ -/g, '- ');
+      return result;
+    }
+
+    function renderMath() {
+      if (window.MathJax && MathJax.typeset) {
+        try {
+          MathJax.typeset();
+        } catch(e) {
+          console.log('MathJax typeset error:', e);
+        }
+      }
+    }
+
+    // Multiplication visualization
+    function drawMul() {
+      const a = parseFloat($aN.value) || 0;
+      const b = parseFloat($bN.value) || 0;
+      const c = parseFloat($cN.value) || 0;
+      const d = parseFloat($dN.value) || 0;
+      
+      // Display expression
+      const expr1 = `(${formatTerm(a, 1)} + ${formatTerm(b, 0)})`.replace('+ -', '- ');
+      const expr2 = `(${formatTerm(c, 1)} + ${formatTerm(d, 0)})`.replace('+ -', '- ');
+      $mulExpr.innerHTML = `\\(${expr1} \\times ${expr2}\\)`;
+      
+      // Calculate FOIL
+      const F = a * c;  // First
+      const O = a * d;  // Outer
+      const I = b * c;  // Inner
+      const L = b * d;  // Last
+      
+      // Combine like terms
+      const A2 = F;
+      const A1 = O + I;
+      const A0 = L;
+      
+      // Display expanded form
+      $mulExpanded.innerHTML = `\\(${formatPoly([A0, A1, A2])}\\)`;
+      
+      // Display FOIL terms
+      const foilTerms = [];
+      if (F !== 0) foilTerms.push(formatTerm(F, 2));
+      if (O !== 0) foilTerms.push(formatTerm(O, 1));
+      if (I !== 0) foilTerms.push(formatTerm(I, 1));
+      if (L !== 0) foilTerms.push(formatTerm(L, 0));
+      $mulFoil.innerHTML = `\\(${foilTerms.join(', ')}\\)`;
+      
+      // Draw area model
+      drawAreaModel(a, b, c, d, F, O, I, L);
+      
+      renderMath();
+    }
+
+    function drawAreaModel(a, b, c, d, F, O, I, L) {
+      const w = 640;
+      const h = 320;
+      const pad = 40;
+      
+      // Clear SVG
+      $mulSvg.innerHTML = '';
+      $mulOverlay.innerHTML = '';
+      
+      // Calculate dimensions
+      const totalWidth = Math.abs(a) + Math.abs(b) || 2;
+      const totalHeight = Math.abs(c) + Math.abs(d) || 2;
+      const scaleX = (w - 2 * pad) / totalWidth;
+      const scaleY = (h - 2 * pad) / totalHeight;
+      
+      const x1 = Math.abs(a) * scaleX;
+      const x2 = Math.abs(b) * scaleX;
+      const y1 = Math.abs(c) * scaleY;
+      const y2 = Math.abs(d) * scaleY;
+      
+      // Define rectangles
+      const rects = [
+        {x: pad, y: pad, w: x1, h: y1, val: F, label: 'F', color: 'hsl(190, 75%, 45%)'},
+        {x: pad + x1, y: pad, w: x2, h: y1, val: I, label: 'I', color: 'hsl(260, 75%, 45%)'},
+        {x: pad, y: pad + y1, w: x1, h: y2, val: O, label: 'O', color: 'hsl(200, 75%, 45%)'},
+        {x: pad + x1, y: pad + y1, w: x2, h: y2, val: L, label: 'L', color: 'hsl(150, 75%, 45%)'}
+      ];
+      
+      // Draw rectangles
+      rects.forEach(rect => {
+        if (rect.w > 0 && rect.h > 0) {
+          const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          r.setAttribute('x', rect.x);
+          r.setAttribute('y', rect.y);
+          r.setAttribute('width', rect.w);
+          r.setAttribute('height', rect.h);
+          r.setAttribute('fill', rect.color);
+          r.setAttribute('fill-opacity', '0.3');
+          r.setAttribute('stroke', rect.color);
+          r.setAttribute('stroke-width', '2');
+          r.setAttribute('rx', '8');
+          $mulSvg.appendChild(r);
+          
+          // Add text
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', rect.x + rect.w / 2);
+          text.setAttribute('y', rect.y + rect.h / 2);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dominant-baseline', 'middle');
+          text.setAttribute('fill', 'white');
+          text.setAttribute('font-size', '18');
+          text.setAttribute('font-weight', 'bold');
+          text.textContent = `${rect.label}: ${rect.val}`;
+          $mulSvg.appendChild(text);
+        }
+      });
+      
+      // Add axis labels
+      const labelStyle = 'fill: #94a3b8; font-size: 14px;';
+      
+      // Top labels
+      if (x1 > 0) {
+        const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t1.setAttribute('x', pad + x1 / 2);
+        t1.setAttribute('y', pad - 10);
+        t1.setAttribute('text-anchor', 'middle');
+        t1.setAttribute('style', labelStyle);
+        t1.textContent = formatTerm(a, 1) || 'ax';
+        $mulSvg.appendChild(t1);
+      }
+      
+      if (x2 > 0) {
+        const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t2.setAttribute('x', pad + x1 + x2 / 2);
+        t2.setAttribute('y', pad - 10);
+        t2.setAttribute('text-anchor', 'middle');
+        t2.setAttribute('style', labelStyle);
+        t2.textContent = formatTerm(b, 0) || 'b';
+        $mulSvg.appendChild(t2);
+      }
+      
+      // Left labels
+      if (y1 > 0) {
+        const t3 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t3.setAttribute('x', pad - 10);
+        t3.setAttribute('y', pad + y1 / 2);
+        t3.setAttribute('text-anchor', 'end');
+        t3.setAttribute('style', labelStyle);
+        t3.textContent = formatTerm(c, 1) || 'cx';
+        $mulSvg.appendChild(t3);
+      }
+      
+      if (y2 > 0) {
+        const t4 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t4.setAttribute('x', pad - 10);
+        t4.setAttribute('y', pad + y1 + y2 / 2);
+        t4.setAttribute('text-anchor', 'end');
+        t4.setAttribute('style', labelStyle);
+        t4.textContent = formatTerm(d, 0) || 'd';
+        $mulSvg.appendChild(t4);
+      }
+    }
+
+    // Division visualization
+    function performDivision() {
+      const p = parseFloat($pN.value) || 0;
+      const q = parseFloat($qN.value) || 0;
+      const r = parseFloat($rN.value) || 0;
+      const m = parseFloat($mN.value) || 1;
+      const n = parseFloat($nN.value) || 0;
+      
+      if (m === 0) {
+        $divSteps.innerHTML = '<div class="line warn">錯誤：除數不能為零</div>';
+        return;
+      }
+      
+      // Display expression
+      const dividend = formatPoly([r, q, p]);
+      const divisor = formatPoly([n, m]);
+      $divExpr.innerHTML = `\\((${dividend}) \\div (${divisor})\\)`;
+      
+      // Clear steps
+      $divSteps.innerHTML = '';
+      
+      // Perform long division
+      let workingCoeffs = [p, q, r]; // high to low degree
+      let quotientCoeffs = [];
+      let divisionSteps = [];
+      
+      // Step 1: Divide x³ or x² term
+      if (p !== 0 && m !== 0) {
+        const q1 = p / m;
+        quotientCoeffs.push(q1);
+        
+        // Calculate subtraction
+        const mult1 = [q1 * m, q1 * n];
+        workingCoeffs[0] -= mult1[0]; // This becomes 0
+        workingCoeffs[1] -= mult1[1];
+        
+        divisionSteps.push({
+          quotient: q1,
+          multiply: mult1,
+          remainder: [workingCoeffs[1], workingCoeffs[2]]
+        });
+        
+        // Step 2: Divide x term if remainder exists
+        if (Math.abs(workingCoeffs[1]) > 0.0001) {
+          const q2 = workingCoeffs[1] / m;
+          quotientCoeffs.push(q2);
+          
+          // Calculate subtraction
+          const mult2 = [q2 * m, q2 * n];
+          workingCoeffs[1] -= mult2[0]; // This becomes 0
+          workingCoeffs[2] -= mult2[1];
+          
+          divisionSteps.push({
+            quotient: q2,
+            multiply: mult2,
+            remainder: [workingCoeffs[2]]
+          });
+        }
+      }
+      
+      // Add text steps
+      if (divisionSteps.length > 0) {
+        const step1 = document.createElement('div');
+        step1.className = 'line ok animate-in';
+        step1.textContent = `第1步：${p}x² ÷ ${m}x = ${divisionSteps[0].quotient}x`;
+        $divSteps.appendChild(step1);
+        
+        const step2 = document.createElement('div');
+        step2.className = 'line animate-in';
+        step2.style.animationDelay = '0.1s';
+        step2.textContent = `減去：${divisionSteps[0].quotient}x × (${formatPoly([n, m])}) = ${formatPoly([divisionSteps[0].multiply[1], divisionSteps[0].multiply[0]])}`;
+        $divSteps.appendChild(step2);
+        
+        if (divisionSteps.length > 1) {
+          const step3 = document.createElement('div');
+          step3.className = 'line ok animate-in';
+          step3.style.animationDelay = '0.2s';
+          step3.textContent = `第2步：${divisionSteps[0].remainder[0]}x ÷ ${m}x = ${divisionSteps[1].quotient}`;
+          $divSteps.appendChild(step3);
+          
+          const step4 = document.createElement('div');
+          step4.className = 'line animate-in';
+          step4.style.animationDelay = '0.3s';
+          step4.textContent = `減去：${divisionSteps[1].quotient} × (${formatPoly([n, m])}) = ${formatPoly([divisionSteps[1].multiply[1], divisionSteps[1].multiply[0]])}`;
+          $divSteps.appendChild(step4);
+          
+          const step5 = document.createElement('div');
+          step5.className = 'line animate-in';
+          step5.style.animationDelay = '0.4s';
+          step5.textContent = `餘數：${workingCoeffs[2]}`;
+          $divSteps.appendChild(step5);
+        }
+      }
+      
+      // Display final result
+      const quotientStr = formatPoly([quotientCoeffs[1] || 0, quotientCoeffs[0] || 0]);
+      const remainderVal = workingCoeffs[2];
+      const remainderStr = Math.abs(remainderVal) > 0.0001 ? ` 餘數 ${remainderVal}` : '';
+      
+      $checkEq.innerHTML = `\\(商 = ${quotientStr}${remainderStr}\\)`;
+      
+      // Draw visualization with standard long division format
+      drawStandardLongDivision(p, q, r, m, n, quotientCoeffs, divisionSteps, remainderVal);
+      
+      renderMath();
+    }
+
+    function drawStandardLongDivision(p, q, r, m, n, quotientCoeffs, steps, finalRemainder) {
+      const canvas = $divCanvas;
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.fillStyle = '#0b1327';
+      ctx.fillRect(0, 0, 640, 320);
+      
+      // Settings
+      const startX = 160;
+      const startY = 50;
+      const lineHeight = 28;
+      
+      ctx.font = '18px "Courier New", monospace';
+      ctx.textAlign = 'right';
+      
+      // Helper to format single terms with proper spacing
+      function formatTermSpaced(coef, power, includeSign = true) {
+        if (Math.abs(coef) < 0.0001) return '      ';
+        
+        let result = '';
+        const absCoef = Math.abs(coef);
+        const sign = coef < 0 ? '−' : (includeSign ? '+' : ' ');
+        
+        if (power === 2) {
+          if (absCoef === 1) {
+            result = `${sign} x²`;
+          } else {
+            result = `${sign} ${absCoef}x²`;
+          }
+        } else if (power === 1) {
+          if (absCoef === 1) {
+            result = `${sign} x`;
+          } else {
+            result = `${sign} ${absCoef}x`;
+          }
+        } else {
+          result = `${sign} ${Math.abs(coef)}`;
+        }
+        
+        return result.padStart(7, ' ');
+      }
+      
+      // Format polynomial with aligned terms
+      function formatPolyAligned(p2, p1, p0, includeFirstSign = false) {
+        let result = '';
+        
+        // x² term
+        if (Math.abs(p2) > 0.0001) {
+          result += formatTermSpaced(p2, 2, includeFirstSign);
+        } else {
+          result += '       ';
+        }
+        
+        // x term
+        if (Math.abs(p1) > 0.0001) {
+          result += ' ' + formatTermSpaced(p1, 1, true);
+        } else {
+          result += '        ';
+        }
+        
+        // constant term
+        if (Math.abs(p0) > 0.0001) {
+          result += ' ' + formatTermSpaced(p0, 0, true);
+        } else {
+          result += '        ';
+        }
+        
+        return result.trim();
+      }
+      
+      // Fixed position for aligned display
+      const dividendX = startX + 220;
+      
+      // Draw quotient (above the line) - aligned with dividend
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 18px "Courier New", monospace';
+      ctx.textAlign = 'right';
+      
+      // Draw quotient aligned with dividend terms
+      if (quotientCoeffs.length > 0) {
+        const quotientStr = formatPolyAligned(0, quotientCoeffs[0] || 0, quotientCoeffs[1] || 0, false);
+        ctx.fillText(quotientStr, dividendX, startY);
+      }
+      
+      // Draw division bracket with horizontal line between quotient and dividend
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      // Horizontal line between quotient and dividend
+      ctx.moveTo(startX - 10, startY + 15);
+      ctx.lineTo(startX + 240, startY + 15);
+      // Vertical line on the left
+      ctx.moveTo(startX - 10, startY + 15);
+      ctx.lineTo(startX - 10, startY + 45);
+      ctx.stroke();
+      
+      // Draw divisor (left side)
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#e5e7eb';
+      ctx.font = '18px "Courier New", monospace';
+      const divisorStr = formatPoly([n, m]);
+      ctx.fillText(divisorStr, startX - 80, startY + 40);
+      
+      // Draw dividend (被除式) - below the line
+      ctx.fillStyle = '#e5e7eb';
+      ctx.textAlign = 'right';
+      ctx.fillText(formatPolyAligned(p, q, r, false), dividendX, startY + 40);
+      
+      // Draw division steps aligned properly
+      let currentY = startY + lineHeight * 2.5;
+      
+      // Step 1: First subtraction
+      if (steps.length > 0) {
+        // Draw first multiplication result (what we subtract)
+        ctx.fillStyle = '#f87171';
+        const mult1P2 = steps[0].multiply[0];
+        const mult1P1 = steps[0].multiply[1];
+        ctx.fillText(formatPolyAligned(mult1P2, mult1P1, 0, false), dividendX, currentY);
+        
+        // Draw subtraction line
+        currentY += lineHeight * 0.7;
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(startX + 50, currentY);
+        ctx.lineTo(startX + 240, currentY);
+        ctx.stroke();
+        currentY += lineHeight * 0.5;
+        
+        // Draw first remainder
+        ctx.fillStyle = '#e5e7eb';
+        const rem1P1 = steps[0].remainder[0];
+        const rem1P0 = steps[0].remainder[1];
+        ctx.fillText(formatPolyAligned(0, rem1P1, rem1P0, false), dividendX, currentY);
+        currentY += lineHeight;
+        
+        // Step 2: Second subtraction
+        if (steps.length > 1) {
+          // Draw second multiplication result
+          ctx.fillStyle = '#f87171';
+          const mult2P1 = steps[1].multiply[0];
+          const mult2P0 = steps[1].multiply[1];
+          ctx.fillText(formatPolyAligned(0, mult2P1, mult2P0, false), dividendX, currentY);
+          
+          // Draw second subtraction line
+          currentY += lineHeight * 0.7;
+          ctx.strokeStyle = '#e5e7eb';
+          ctx.beginPath();
+          ctx.moveTo(startX + 100, currentY);
+          ctx.lineTo(startX + 240, currentY);
+          ctx.stroke();
+          currentY += lineHeight * 0.5;
+          
+          // Draw final remainder
+          ctx.fillStyle = '#22d3ee';
+          ctx.font = 'bold 18px "Courier New", monospace';
+          const finalRemStr = Math.abs(finalRemainder) > 0.0001 ? 
+            (finalRemainder > 0 ? ' ' : '−') + ' ' + Math.abs(finalRemainder) : '0';
+          ctx.fillText(finalRemStr.padStart(7, ' '), dividendX, currentY);
+        }
+      }
+      
+      // Add small labels
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'left';
+      ctx.fillText('商', startX + 170, startY - 15);
+      ctx.fillText('除式', startX - 80, startY + 25);
+      ctx.fillText('被除式', startX + 250, startY + 25);
+      if (Math.abs(finalRemainder) > 0.0001) {
+        ctx.fillText('餘數', startX + 250, currentY + 15);
+      }
+    }
+
+    // Event handlers
+    document.getElementById('btnCheckMul').addEventListener('click', () => {
+      const a = parseFloat($aN.value) || 0;
+      const b = parseFloat($bN.value) || 0;
+      const c = parseFloat($cN.value) || 0;
+      const d = parseFloat($dN.value) || 0;
+      const x = parseFloat($xCheck.value) || 0;
+      
+      const left = (a * x + b) * (c * x + d);
+      const right = (a * c) * x * x + (a * d + b * c) * x + (b * d);
+      
+      const isEqual = Math.abs(left - right) < 0.0001;
+      
+      if (isEqual) {
+        $mulCheck.innerHTML = `<span class="pass">✓ 驗證通過</span><br>\\(${left}\\)`;
+      } else {
+        $mulCheck.innerHTML = `<span class="fail">✗ 不一致</span><br>左=${left}, 右=${right}`;
+      }
+      
+      renderMath();
+    });
+
+    document.getElementById('btnDivide').addEventListener('click', performDivision);
+    
+    document.getElementById('btnResetDiv').addEventListener('click', () => {
+      $divSteps.innerHTML = '';
+      $checkEq.innerHTML = '';
+      const ctx = $divCanvas.getContext('2d');
+      ctx.fillStyle = '#0b1327';
+      ctx.fillRect(0, 0, 640, 320);
+    });
+
+    // Input change handlers
+    [$aN, $bN, $cN, $dN].forEach(input => {
+      input.addEventListener('input', drawMul);
+    });
+
+    [$pN, $qN, $rN, $mN, $nN].forEach(input => {
+      input.addEventListener('input', () => {
+        $divExpr.innerHTML = `\\((${formatPoly([parseFloat($rN.value), parseFloat($qN.value), parseFloat($pN.value)])}) \\div (${formatPoly([parseFloat($nN.value), parseFloat($mN.value)])})\\)`;
+        renderMath();
+      });
+    });
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      drawMul();
+      const dividend = formatPoly([parseFloat($rN.value), parseFloat($qN.value), parseFloat($pN.value)]);
+      const divisor = formatPoly([parseFloat($nN.value), parseFloat($mN.value)]);
+      $divExpr.innerHTML = `\\((${dividend}) \\div (${divisor})\\)`;
+      renderMath();
+    });
+  </script>
+</body>
+</html>
